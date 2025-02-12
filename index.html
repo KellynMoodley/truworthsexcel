@@ -39,10 +39,8 @@
                 >
             </div>
             
-            <div id="accountDetails" class="mt-8 space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Account details will be populated here -->
-                </div>
+            <div id="accountDetails" class="mt-8 space-y-8">
+                <!-- Details will be populated here -->
             </div>
         </div>
     </main>
@@ -50,22 +48,24 @@
     <script>
         let accountsData = [];
 
-        // Custom headings mapping
-        const fieldMappings = {
+        // Primary information fields
+        const primaryFields = {
             'Account_no': 'Account Number',
             'Collections_Segment_Detail': 'The customer falls under ',
             'Last_Payment_Date': 'The last Payment Date of the customer was ',
-            'Last_Payment_Amount': 'The Last Payment Amount of the customer account',
-            'Balance': 'The Current Balance of the customers account',
-            // Add more mappings as needed
+            'Balance': 'The Current Balance of the customers account'
         };
 
-        // Function to check if a value might be an Excel date
+        // Secondary information fields
+        const secondaryFields = {
+            'Last_Payment_Amount': 'The Last Payment Amount of the customer account',
+            // Add more secondary fields as needed
+        };
+
         function isExcelDate(value) {
             return typeof value === 'number' && value > 1 && value < 50000;
         }
 
-        // Function to format Excel date
         function formatExcelDate(excelDate) {
             if (!excelDate) return 'N/A';
             try {
@@ -80,7 +80,6 @@
             }
         }
 
-        // Function to format value based on type
         function formatValue(key, value) {
             if (value === undefined || value === null || value === '') return 'N/A';
             
@@ -88,7 +87,6 @@
                 return formatExcelDate(value);
             }
             
-            // Add any other formatting rules here
             if (key.toLowerCase().includes('amount') || key.toLowerCase().includes('balance')) {
                 return typeof value === 'number' ? 
                     value.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' }) : 
@@ -103,19 +101,14 @@
             detailsElement.innerHTML = `<div class="text-red-600 font-semibold">${message}</div>`;
         }
 
-        function displayAccountDetails(accountNumber) {
-            const detailsElement = document.getElementById('accountDetails');
-            const account = accountsData.find(acc => acc.Account_no == accountNumber);
-
-            if (!account) {
-                showError('Account not found');
-                return;
-            }
-
-            let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">';
+        function displayAccountSection(account, fields, title, containerClass) {
+            let html = `
+                <div class="${containerClass}">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700">${title}</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            `;
             
-            // Display fields in the order specified by fieldMappings
-            for (const [excelField, displayHeading] of Object.entries(fieldMappings)) {
+            for (const [excelField, displayHeading] of Object.entries(fields)) {
                 if (account.hasOwnProperty(excelField)) {
                     const value = account[excelField];
                     const formattedValue = formatValue(excelField, value);
@@ -129,11 +122,36 @@
                 }
             }
 
-            // Display remaining fields that aren't in the mapping
+            html += '</div></div>';
+            return html;
+        }
+
+        function displayAccountDetails(accountNumber) {
+            const detailsElement = document.getElementById('accountDetails');
+            const account = accountsData.find(acc => acc.Account_no == accountNumber);
+
+            if (!account) {
+                showError('Account not found');
+                return;
+            }
+
+            let html = '';
+            
+            // Primary Information Section
+            html += displayAccountSection(account, primaryFields, 'Primary Information', 'mb-8 p-6 bg-white border border-gray-200 rounded-lg');
+            
+            // Secondary Information Section
+            html += displayAccountSection(account, secondaryFields, 'Secondary Information', 'p-6 bg-white border border-gray-200 rounded-lg');
+
+            // Display remaining fields in Secondary section
+            let remainingFieldsHtml = '<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">';
+            let hasRemainingFields = false;
+
             for (const [key, value] of Object.entries(account)) {
-                if (!fieldMappings.hasOwnProperty(key)) {
+                if (!primaryFields.hasOwnProperty(key) && !secondaryFields.hasOwnProperty(key)) {
+                    hasRemainingFields = true;
                     const formattedValue = formatValue(key, value);
-                    html += `
+                    remainingFieldsHtml += `
                         <div class="bg-gray-50 p-4 rounded-lg">
                             <h3 class="text-sm font-semibold text-gray-600 mb-1">${key}</h3>
                             <p class="text-gray-800">${formattedValue}</p>
@@ -141,8 +159,15 @@
                     `;
                 }
             }
+            remainingFieldsHtml += '</div>';
 
-            html += '</div>';
+            if (hasRemainingFields) {
+                html += `<div class="mt-8 p-6 bg-white border border-gray-200 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700">Additional Information</h3>
+                    ${remainingFieldsHtml}
+                </div>`;
+            }
+
             detailsElement.innerHTML = html;
         }
 
