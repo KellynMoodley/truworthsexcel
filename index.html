@@ -101,7 +101,7 @@
         }
 
         function isExcelDate(value) {
-            return typeof value === 'number' && value > 1 && value < 100000000000;
+            return typeof value === 'number' && value > 1 && value < 50000;
         }
 
         function formatExcelDate(excelDate) {
@@ -122,7 +122,7 @@
             if (value === undefined || value === null || value === '') return 'N/A';
             
             // Handle cycle due mappings
-            if (key === 'CycleDue_Current' || key === 'CycleDue_Billing' || key==='CycleDue_Hist_1_24M') {
+            if (key === 'CycleDue_Current' || key === 'CycleDue_Billing') {
                 const mappedValue = getCycleDueMapping(value);
                 return `${value} (${mappedValue})`;
             }
