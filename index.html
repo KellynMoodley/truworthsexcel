@@ -25,7 +25,7 @@
 
     <main class="ml-80 flex flex-grow p-10">
         <div class="bg-white shadow-md rounded-xl p-8 max-w-full mx-auto w-full">
-            <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">Summary</h2>
+            <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">Account Details</h2>
             
             <div class="mb-6">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="accountNumber">
@@ -39,11 +39,10 @@
                 >
             </div>
             
-            <div 
-                id="summary" 
-                class="mt-8 p-6 bg-gray-50 border border-gray-200 rounded-lg whitespace-pre-wrap overflow-auto max-h-96 w-full"
-            >
-                Select an account from the list to view summary...
+            <div id="accountDetails" class="mt-8 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Account details will be populated here -->
+                </div>
             </div>
         </div>
     </main>
@@ -51,45 +50,40 @@
     <script>
         let accountsData = [];
 
-        // Function to display error messages
         function showError(message) {
-            const summaryElement = document.getElementById('summary');
-            summaryElement.innerHTML = `<div class="text-red-600 font-semibold">${message}</div>`;
+            const detailsElement = document.getElementById('accountDetails');
+            detailsElement.innerHTML = `<div class="text-red-600 font-semibold">${message}</div>`;
         }
 
-        async function fetchSummary() {
-            const accountNumber = document.getElementById('accountNumber').value;
-            const summaryElement = document.getElementById('summary');
-            
-            if (!accountNumber) {
-                showError('Please enter an account number.');
+        function displayAccountDetails(accountNumber) {
+            const detailsElement = document.getElementById('accountDetails');
+            const account = accountsData.find(acc => acc.Account_no == accountNumber);
+
+            if (!account) {
+                showError('Account not found');
                 return;
             }
 
-            try {
-                summaryElement.innerText = 'Loading...';
-                
-                const response = await fetch(`/fetch-summary?account=${encodeURIComponent(accountNumber)}`);
-                
-                if (!response.ok) {
-                    throw new Error(`Error: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                // Format the response text
-                let formattedText = JSON.stringify(data, null, 2);
-                // Remove quotes and escape characters
-                formattedText = formattedText.replace(/\\|"/g, '');
-                // Find '##' and move the following text to a new line
-                formattedText = formattedText.replace(/##/g, '\n\n');
-                
-                // Update the summary element
-                summaryElement.innerText = formattedText;
-                
-            } catch (error) {
-                showError(`Failed to fetch summary: ${error.message}`);
+            // Create a formatted display of all fields
+            let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">';
+            
+            for (const [key, value] of Object.entries(account)) {
+                // Format the key by replacing underscores with spaces and capitalizing
+                const formattedKey = key.replace(/_/g, ' ')
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+
+                html += `
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-sm font-semibold text-gray-600 mb-1">${formattedKey}</h3>
+                        <p class="text-gray-800">${value || 'N/A'}</p>
+                    </div>
+                `;
             }
+
+            html += '</div>';
+            detailsElement.innerHTML = html;
         }
 
         document.getElementById('excelFile').addEventListener('change', function(e) {
@@ -102,7 +96,6 @@
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
 
-                    // Convert worksheet to JSON
                     accountsData = XLSX.utils.sheet_to_json(worksheet);
 
                     if (accountsData.length === 0) {
@@ -110,11 +103,9 @@
                         return;
                     }
 
-                    // Clear existing account list
                     const accountList = document.getElementById('accountList');
                     accountList.innerHTML = '';
 
-                    // Populate accounts dynamically
                     accountsData.forEach(account => {
                         const accountDiv = document.createElement('div');
                         accountDiv.className = 'bg-gray-50 hover:bg-blue-100 p-3 rounded-lg cursor-pointer transition group';
@@ -144,14 +135,13 @@
         });
 
         function selectAccount(accountId) {
-            // Update the account number input
             document.getElementById('accountNumber').value = accountId;
-            // Fetch and display the summary
-            fetchSummary();
+            displayAccountDetails(accountId);
         }
 
-        // Add event listener for manual account number input
-        document.getElementById('accountNumber').addEventListener('change', fetchSummary);
+        document.getElementById('accountNumber').addEventListener('change', function() {
+            displayAccountDetails(this.value);
+        });
     </script>
 </body>
 </html>
