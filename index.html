@@ -122,7 +122,7 @@
             if (value === undefined || value === null || value === '') return 'N/A';
             
             // Handle cycle due mappings
-            if (key === 'CycleDue_Current' || key === 'CycleDue_Billing') {
+            if (key === 'CycleDue_Current' || key === 'CycleDue_Billing' || key==='CycleDue_Hist_1_24M') {
                 const mappedValue = getCycleDueMapping(value);
                 return `${value} (${mappedValue})`;
             }
