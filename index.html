@@ -50,19 +50,26 @@
     <script>
         let accountsData = [];
 
+        // Custom headings mapping
+        const fieldMappings = {
+            'Account_no': 'Account Number',
+            'Collections_Segment_Detail': 'Collections Segment',
+            'Last_Payment_Date': 'Last Payment Date',
+            'Last_Payment_Amount': 'Last Payment Amount',
+            'Balance': 'Current Balance',
+            // Add more mappings as needed
+        };
+
         // Function to check if a value might be an Excel date
         function isExcelDate(value) {
-            // Check if the value is a number and within reasonable Excel date range
             return typeof value === 'number' && value > 1 && value < 50000;
         }
 
-        // Function to format Excel date number to readable date
+        // Function to format Excel date
         function formatExcelDate(excelDate) {
             if (!excelDate) return 'N/A';
             try {
-                // Convert Excel date to JavaScript Date
                 const date = new Date((excelDate - 25569) * 86400 * 1000);
-                // Format date as DD/MM/YYYY
                 return date.toLocaleDateString('en-GB', {
                     day: '2-digit',
                     month: '2-digit',
@@ -77,9 +84,15 @@
         function formatValue(key, value) {
             if (value === undefined || value === null || value === '') return 'N/A';
             
-            // Check if the field name contains 'date' (case insensitive)
             if (key.toLowerCase().includes('date') && isExcelDate(value)) {
                 return formatExcelDate(value);
+            }
+            
+            // Add any other formatting rules here
+            if (key.toLowerCase().includes('amount') || key.toLowerCase().includes('balance')) {
+                return typeof value === 'number' ? 
+                    value.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' }) : 
+                    value;
             }
             
             return value;
@@ -101,20 +114,32 @@
 
             let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">';
             
+            // Display fields in the order specified by fieldMappings
+            for (const [excelField, displayHeading] of Object.entries(fieldMappings)) {
+                if (account.hasOwnProperty(excelField)) {
+                    const value = account[excelField];
+                    const formattedValue = formatValue(excelField, value);
+
+                    html += `
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="text-sm font-semibold text-gray-600 mb-1">${displayHeading}</h3>
+                            <p class="text-gray-800">${formattedValue}</p>
+                        </div>
+                    `;
+                }
+            }
+
+            // Display remaining fields that aren't in the mapping
             for (const [key, value] of Object.entries(account)) {
-                const formattedKey = key.replace(/_/g, ' ')
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-
-                const formattedValue = formatValue(key, value);
-
-                html += `
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="text-sm font-semibold text-gray-600 mb-1">${formattedKey}</h3>
-                        <p class="text-gray-800">${formattedValue}</p>
-                    </div>
-                `;
+                if (!fieldMappings.hasOwnProperty(key)) {
+                    const formattedValue = formatValue(key, value);
+                    html += `
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="text-sm font-semibold text-gray-600 mb-1">${key}</h3>
+                            <p class="text-gray-800">${formattedValue}</p>
+                        </div>
+                    `;
+                }
             }
 
             html += '</div>';
